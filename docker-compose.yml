@@ -1,0 +1,55 @@
+version: "3.8"
+
+services:
+  database:
+    image: postgres
+    container_name: database_fin_comp
+    restart: always
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_USER=docker
+      - POSTGRES_PASSWORD=finctrl
+      - POSTGRES_DB=fin_ctrl
+
+  api:
+    build:
+      dockerfile: Dockerfile
+      context: "./Finance-Control"
+    container_name: fin_ctrl_back
+    depends_on:
+      - database
+    volumes:
+      - ./Finance-Control:/app
+
+  client:
+    stdin_open: true
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    build:
+      dockerfile: Dockerfile
+      context: ./Finance-Control-Front_End
+    volumes:
+      - /app/node_modules
+      - ./Finance-Control-Front_End:/app
+
+  nginx:
+    depends_on:
+      - api
+      - client
+    restart: always
+    build: 
+      dockerfile: Dockerfile
+      context: ./Nginx
+    ports:
+      - 3050:80
+
+  adminer:
+    image: adminer:latest
+    restart: unless-stopped
+    ports:
+      - 7000:8080
+    depends_on:
+      - database
+    environment:
+      ADMINER_DEFAULT_SERVER: database
